@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Applications • AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand"><a href="/" style="color:inherit;">AquaShift</a> <span class="badge">Instructor</span></div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Checking session…</span>
+        <a class="btn" href="instructor-dashboard.html">Home</a>
+        <a class="btn" href="/shifts.html">Shifts</a>
+        <a class="btn" href="/instructor-profile.html">My Profile</a>
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <h1 class="h1">My Applications</h1>
+    <p class="sub">Track your shift applications and cancel requests if needed.</p>
+
+    <div id="msg" class="notice" style="display:none;"></div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;">
+        <select class="input" id="statusFilter" style="max-width:220px;">
+          <option value="">All</option>
+          <option value="requested">Requested</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+      </div>
+
+      <div id="bookingsList" class="list"></div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/myBookings.js"></script>
+</body>
+</html>

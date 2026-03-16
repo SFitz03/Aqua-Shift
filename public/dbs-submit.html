@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AquaShift — Submit DBS</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Submit DBS details</h1>
+
+    <form id="dbsForm" class="card">
+      <label>
+        DBS reference number
+        <input name="dbs_reference" type="text" required placeholder="e.g. 00123456789" />
+      </label>
+
+      <button type="submit">Submit</button>
+      <p id="msg" class="msg" aria-live="polite"></p>
+    </form>
+
+    <p class="muted"><a href="/dashboard.html">Back to dashboard</a></p>
+  </main>
+
+  <script src="/dbs-submit.js"></script>
+</body>
+</html>

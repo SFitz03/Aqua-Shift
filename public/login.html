@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login • AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand"><a href="/" style="color:inherit;">AquaShift</a> <span class="badge">MVP</span></div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Not logged in</span>
+      </div>
+    </div>
+
+    <h1 class="h1">Login</h1>
+    <p class="sub">This logs in using your Express session cookie.</p>
+
+    <div class="card">
+      <div id="msg" class="notice" style="display:none;"></div>
+
+      <form id="loginForm" class="form">
+        <label>Email</label>
+        <input class="input" id="email" type="email" placeholder="sam@test.com" required />
+
+        <label>Password</label>
+        <input class="input" id="password" type="password" placeholder="Password123!" required />
+
+        <div class="row" style="margin-top:14px;">
+          <button class="btn primary" type="submit">Login</button>
+          <a class="btn" href="/">Back</a>
+        </div>
+
+        <hr class="sep" />
+
+        <div class="notice">
+          <div><strong>Test accounts</strong></div>
+          <div class="muted">Instructor: sam@test.com / Password123!</div>
+          <div class="muted">Organisation: org@test.com / Password123!</div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

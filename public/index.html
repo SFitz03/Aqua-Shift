@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand">AquaShift <span class="badge">MVP</span></div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Checking session…</span>
+      </div>
+    </div>
+
+    <!-- Logged OUT view -->
+    <div id="loggedOut" style="display:none;">
+      <h1 class="h1">Welcome to AquaShift</h1>
+      <p class="sub">Please login or create an account to continue.</p>
+
+      <div class="grid">
+        <div class="card half">
+          <h3>Login</h3>
+          <p class="muted">Access your dashboard.</p>
+          <a class="btn primary" href="/login.html">Login</a>
+        </div>
+
+        <div class="card half">
+          <h3>Create account</h3>
+          <p class="muted">Register as an instructor or organisation.</p>
+          <a class="btn primary" href="/register.html">Register</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logged IN view (role-specific) -->
+    <div id="loggedIn" style="display:none;">
+      <h1 class="h1">Dashboard</h1>
+      <p class="sub" id="roleText">Loading…</p>
+
+      <div class="grid" id="roleCards"></div>
+
+      <div style="margin-top:14px;">
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    const loggedOut = document.getElementById("loggedOut");
+    const loggedIn = document.getElementById("loggedIn");
+    const roleText = document.getElementById("roleText");
+    const roleCards = document.getElementById("roleCards");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", logout);
+
+    function card(title, desc, href) {
+      return `
+        <div class="card half">
+          <h3>${title}</h3>
+          <p class="muted">${desc}</p>
+          <a class="btn primary" href="${href}">Open</a>
+        </div>
+      `;
+    }
+
+    (async () => {
+      try {
+        const me = await getMe(); // from auth.js
+        setNavUser(me);
+
+        loggedOut.style.display = "none";
+        loggedIn.style.display = "block";
+
+        const role = me?.user?.role;
+
+        if (role === "instructor") {
+  roleText.textContent = "You are logged in as an Instructor.";
+  roleCards.innerHTML =
+    card("Shifts", "View open shifts and apply.", "/shifts.html") +
+    card("My Profile", "DBS status + submit DBS.", "/instructor-profile.html") +
+    card("My Applications", "Track booking status and cancel requests.", "/my-bookings.html");
+} else if (role === "organisation") {
+  roleText.textContent = "You are logged in as an Organisation.";
+  roleCards.innerHTML =
+    card("Manage Shifts", "Create and manage shifts.", "/org-shifts.html") +
+    card("Booking Requests", "Accept/reject instructor applications.", "/org-bookings.html") +
+    card("DBS Verification", "Verify or reject DBS submissions.", "/org-dbs.html") +
+    card("Organisation Profile", "Edit organisation details.", "/org-profile.html");
+    card("Manage Shifts", "Create and manage shifts.", "/org-shifts.html")
+} else if (role === "admin") {
+          roleText.textContent = "You are logged in as Admin.";
+          roleCards.innerHTML =
+            card("Shifts", "Instructor view.", "/shifts.html") +
+            card("Org Dashboard", "Organisation view.", "/org-dashboard.html") +
+            card("Instructor Profile", "DBS view.", "/instructor-profile.html");
+        } else {
+          // Unknown role -> log out for safety
+          await logout();
+          window.location.href = "/login.html";
+        }
+      } catch (e) {
+        // Not logged in
+        document.getElementById("navUser").textContent = "Not logged in";
+        loggedIn.style.display = "none";
+        loggedOut.style.display = "block";
+      }
+    })();
+  </script>
+</body>
+</html>

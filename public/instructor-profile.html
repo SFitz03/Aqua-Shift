@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Profile • AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand">
+        <a href="/" style="color:inherit;">AquaShift</a>
+        <span class="badge">Instructor</span>
+      </div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Checking session…</span>
+        <a class="btn" href="instructor-dashboard.html">Home</a>
+        <a class="btn" href="/shifts.html">Shifts</a>
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <h1 class="h1">My Profile</h1>
+    <p class="sub">Set your instructor details, manage DBS verification, and view your ratings.</p>
+
+    <div id="msg" class="notice" style="display:none;"></div>
+
+    <div class="grid">
+      <div class="card half">
+        <h3>Instructor Details</h3>
+
+        <form id="profileForm" class="form">
+          <label>Qualification level</label>
+          <input class="input" id="qualification_level" type="text" placeholder="Level 2" required />
+
+          <label>Postcode</label>
+          <input class="input" id="postcode" type="text" placeholder="BS16 1QY" required />
+
+          <label>Bio (optional)</label>
+          <textarea class="input" id="bio" rows="4" placeholder="Short teaching bio…"></textarea>
+
+          <label>Availability days (optional)</label>
+          <input class="input" id="availability_days" type="text" placeholder="Mon,Tue,Wed" />
+
+          <div class="row">
+            <div style="flex:1;">
+              <label>Availability start</label>
+              <input class="input" id="availability_start" type="time" />
+            </div>
+            <div style="flex:1;">
+              <label>Availability end</label>
+              <input class="input" id="availability_end" type="time" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:14px;">
+            <button class="btn primary" type="submit">Save profile</button>
+            <button class="btn" type="button" id="demoProfileBtn">Prefill demo</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card half">
+        <h3>DBS Status</h3>
+
+        <div id="dbsBox" class="muted">Loading DBS…</div>
+
+        <hr style="margin:14px 0; border:none; border-top:1px solid #eee;" />
+
+        <h3>Submit DBS for verification</h3>
+
+        <form id="dbsForm" class="form">
+          <label>DBS check type</label>
+          <select class="input" id="dbs_check_type" required>
+            <option value="">Select…</option>
+            <option value="basic">Basic</option>
+            <option value="standard">Standard</option>
+            <option value="enhanced">Enhanced</option>
+          </select>
+
+          <label>DBS issued date</label>
+          <input class="input" id="dbs_issued_date" type="date" required />
+
+          <label>Update Service member?</label>
+          <select class="input" id="update_service_member" required>
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+
+          <label>DBS reference last 4 digits (optional)</label>
+          <input class="input" id="dbs_ref_last4" type="text" maxlength="4" placeholder="1234" />
+
+          <div class="row" style="margin-top:14px;">
+            <button class="btn primary" type="submit">Submit DBS</button>
+            <button class="btn" type="button" id="demoDbsBtn">Prefill demo</button>
+          </div>
+
+          <p class="muted" style="margin-top:10px;">
+            For GDPR minimisation, we store only limited DBS metadata, not the full certificate number.
+          </p>
+        </form>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3>My Ratings</h3>
+      <div id="ratingsSummary" class="muted">Loading rating summary…</div>
+      <div id="ratingsList" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/instructorProfile.js"></script>
+</body>
+</html>

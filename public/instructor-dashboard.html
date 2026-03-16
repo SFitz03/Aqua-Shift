@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Instructor Dashboard • AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand">
+        <a href="/" style="color:inherit;">AquaShift</a>
+        <span class="badge">Instructor</span>
+      </div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Checking session…</span>
+        <a class="btn" href="/shifts.html">Shifts</a>
+        <a class="btn" href="/my-bookings.html">My Bookings</a>
+        <a class="btn" href="/instructor-profile.html">My Profile</a>
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <h1 class="h1">Instructor Dashboard</h1>
+    <p class="sub">Manage your profile, view shifts, track bookings, and check your DBS and ratings.</p>
+
+    <div id="msg" class="notice" style="display:none;"></div>
+
+    <div class="grid">
+      <a href="/shifts.html" class="card half" style="text-decoration:none; color:inherit;">
+        <h3>Find Shifts</h3>
+        <p class="muted">Browse available shifts and apply for work.</p>
+      </a>
+
+      <a href="/my-bookings.html" class="card half" style="text-decoration:none; color:inherit;">
+        <h3>My Bookings</h3>
+        <p class="muted">See requested, accepted, rejected, and cancelled bookings.</p>
+      </a>
+
+      <a href="/instructor-profile.html" class="card half" style="text-decoration:none; color:inherit;">
+        <h3>My Profile</h3>
+        <p class="muted">Update qualifications, availability, bio, DBS status, and ratings.</p>
+      </a>
+
+      <a href="/dbs-submit.html" class="card half" style="text-decoration:none; color:inherit;">
+        <h3>Submit DBS</h3>
+        <p class="muted">Submit or review your DBS verification details.</p>
+      </a>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
+    (async () => {
+      await guard(["instructor", "admin"]);
+    })();
+  </script>
+</body>
+</html>

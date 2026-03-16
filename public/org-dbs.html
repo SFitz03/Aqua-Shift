@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DBS Verification • AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand"><a href="/" style="color:inherit;">AquaShift</a> <span class="badge">Organisation</span></div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Checking session…</span>
+        <a class="btn" href="/org-dashboard.html">Dashboard</a>
+        <a class="btn" href="/org-shifts.html">Shifts</a>
+        <a class="btn" href="/org-bookings.html">Bookings</a>
+        <a class="btn" href="/org-profile.html">Org Profile</a>
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <h1 class="h1">DBS Verification</h1>
+    <p class="sub">Verify or reject DBS submissions from instructors who applied to your shifts.</p>
+
+    <div id="msg" class="notice" style="display:none;"></div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;">
+        <select class="input" id="filter" style="max-width:260px;">
+          <option value="pending">Pending only</option>
+          <option value="all">All linked instructors</option>
+        </select>
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+      </div>
+
+      <div id="list" class="list"></div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/orgDbs.js"></script>
+</body>
+</html>
