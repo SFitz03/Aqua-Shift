@@ -26,7 +26,7 @@ app.use(
     cookie: {
       secure: false, // local development only
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 // 1 hour
+      
     }
   })
 );
@@ -306,6 +306,19 @@ app.get("/api/auth/me", (req, res) => {
 // ORGANISATION PROFILE
 // =====================
 
+app.get("/api/org/profile", requireRole("organisation", "admin"), async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    const [rows] = await db.query(
+      "SELECT organisation_name, postcode, contact_phone FROM organisation_profiles WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+    return res.json({ profile: rows.length ? rows[0] : null });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+ 
 app.post("/api/org/profile", requireRole("organisation", "admin"), async (req, res) => {
   try {
     const { organisation_name, postcode, contact_phone } = req.body;
@@ -350,6 +363,21 @@ app.post("/api/org/profile", requireRole("organisation", "admin"), async (req, r
 // INSTRUCTOR PROFILE
 // =====================
 
+app.get("/api/instructor/profile", requireRole("instructor", "admin"), async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    const [rows] = await db.query(
+      `SELECT qualification_level, dbs_checked, postcode, bio,
+              availability_days, availability_start, availability_end
+       FROM instructor_profiles WHERE user_id = ? LIMIT 1`,
+      [userId]
+    );
+    return res.json({ profile: rows.length ? rows[0] : null });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+ 
 app.post("/api/instructor/profile", requireRole("instructor", "admin"), async (req, res) => {
   try {
     const {
@@ -1358,3 +1386,4 @@ app.post("/api/shifts/:id/cancel", requireRole("organisation", "admin"), async (
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
