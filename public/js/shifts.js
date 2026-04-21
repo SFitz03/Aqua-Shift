@@ -77,8 +77,6 @@ async function load() {
   rowsEl.innerHTML = `<tr><td colspan="6" class="muted">Loading…</td></tr>`;
 
   try {
-    await guard(["instructor", "admin"]);
-
     const [shiftsData, bookingsData] = await Promise.all([
       api("/api/shifts?status=open", { method: "GET" }),
       api("/api/instructor/bookings", { method: "GET" })
@@ -161,4 +159,7 @@ async function load() {
   }
 }
 
-load();
+(async () => {
+  await guard(["instructor", "admin"]);
+  await load();
+})();
