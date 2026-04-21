@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rate Instructors • AquaShift</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+ 
+    <div class="nav">
+      <div class="brand">
+        <a href="/" style="color:inherit;">AquaShift</a>
+        <span class="badge">Organisation</span>
+      </div>
+      <div class="nav-actions">
+        <span class="badge" id="navUser">Checking session…</span>
+        <a class="btn" href="/org-dashboard.html">Dashboard</a>
+        <a class="btn" href="/org-shifts.html">Shifts</a>
+        <a class="btn" href="/org-bookings.html">Bookings</a>
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+ 
+    <h1 class="h1">Rate Instructors</h1>
+    <p class="sub">Leave a star rating for instructors who have completed a shift with you.</p>
+ 
+    <div id="msg" class="notice" style="display:none;"></div>
+ 
+    <!-- Filter bar -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="row">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <label style="margin:0;color:var(--muted);font-size:13px;">Filter:</label>
+          <select class="input" id="filterStatus" style="max-width:180px;">
+            <option value="pending">Awaiting rating</option>
+            <option value="rated">Already rated</option>
+            <option value="all">All accepted</option>
+          </select>
+        </div>
+        <button class="btn" id="refreshBtn">Refresh</button>
+      </div>
+    </div>
+ 
+    <!-- Ratings list -->
+    <div id="ratingsList" class="list">
+      <div class="muted">Loading…</div>
+    </div>
+ 
+  </div>
+ 
+  <!-- Rating Modal -->
+  <div id="ratingModal" style="
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,0.6);z-index:1000;
+    align-items:center;justify-content:center;
+  ">
+    <div style="
+      background:var(--card);border:1px solid var(--border);
+      border-radius:16px;padding:28px 32px;
+      min-width:320px;max-width:460px;width:90%;
+    ">
+      <h3 style="margin:0 0 4px;color:var(--text);">Rate Instructor</h3>
+      <p id="ratingSubtitle" style="margin:0 0 18px;color:var(--muted);font-size:.9rem;"></p>
+ 
+      <div id="starPicker" style="font-size:2.2rem;cursor:pointer;user-select:none;letter-spacing:6px;margin-bottom:8px;">
+        <span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
+      </div>
+      <div id="selectedRating" style="color:var(--muted);font-size:.88rem;margin-bottom:16px;">Selected: —</div>
+ 
+      <label style="margin-bottom:6px;">Feedback <span style="color:var(--muted);font-size:.82rem;">(optional)</span></label>
+      <textarea id="ratingComment" placeholder="How did the session go? Any feedback for the instructor…"
+        style="
+          width:100%;min-height:80px;padding:10px 12px;
+          border:1px solid var(--border);border-radius:10px;
+          background:rgba(255,255,255,0.04);color:var(--text);
+          font-size:.92rem;resize:vertical;box-sizing:border-box;
+        "></textarea>
+ 
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button class="btn" id="cancelRatingBtn">Cancel</button>
+        <button class="btn primary" id="submitRatingBtn">Submit Rating</button>
+      </div>
+    </div>
+  </div>
+ 
+  <script src="/js/auth.js"></script>
+  <script src="/js/orgRatings.js"></script>
+</body>
+</html>

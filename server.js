@@ -138,6 +138,10 @@ app.get("/org-bookings.html", requireRolePage("organisation", "admin"), (req, re
   return res.sendFile(path.join(__dirname, "public", "org-bookings.html"));
 });
 
+app.get("/org-ratings.html", requireRolePage("organisation", "admin"), (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "org-ratings.html"));
+});
+ 
 app.get("/org-dbs.html", requireRolePage("organisation", "admin"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "org-dbs.html"));
 });
@@ -1477,4 +1481,3 @@ app.post("/api/notifications/read-all", requireAuth, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
