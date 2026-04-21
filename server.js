@@ -6,6 +6,27 @@ const bcrypt = require("bcrypt");
 require("dotenv").config();
 
 const db = require("./config/db");
+ 
+// =====================
+// SSE — LIVE NOTIFICATIONS
+// =====================
+// Map of userId -> SSE response object (one connection per user)
+const sseClients = new Map();
+ 
+function sendNotification(userId, payload) {
+  const client = sseClients.get(userId);
+  if (client) {
+    client.write(`data: ${JSON.stringify(payload)}\n\n`);
+  }
+}
+ 
+async function createNotification(userId, message, type = "info") {
+  await db.query(
+    "INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)",
+    [userId, message, type]
+  );
+  sendNotification(userId, { message, type, read: false, created_at: new Date() });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,7 +47,7 @@ app.use(
     cookie: {
       secure: false, // local development only
       httpOnly: true,
-      
+      maxAge: 1000 * 60 * 60 // 1 hour
     }
   })
 );
@@ -1365,12 +1386,32 @@ app.post("/api/shifts/:id/cancel", requireRole("organisation", "admin"), async (
     }
 
     await q("UPDATE shifts SET status = 'cancelled' WHERE id = ?", [shiftId]);
+
+    // Find any accepted instructor and notify them live
+    const [affectedBookings] = await q(
+      `SELECT b.id AS booking_id, ip.user_id AS instructor_user_id, s.title
+       FROM bookings b
+       JOIN instructor_profiles ip ON ip.id = b.instructor_id
+       JOIN shifts s ON s.id = b.shift_id
+       WHERE b.shift_id = ? AND b.status NOT IN ('cancelled', 'rejected')`,
+      [shiftId]
+    );
+
     await q(
       "UPDATE bookings SET status = 'cancelled' WHERE shift_id = ? AND status <> 'cancelled'",
       [shiftId]
     );
 
     if (conn) await q("COMMIT");
+
+    // Send live notifications after commit
+    for (const row of affectedBookings) {
+      await createNotification(
+        row.instructor_user_id,
+        `Your booking for "${row.title}" has been cancelled by the organisation.`,
+        "warning"
+      );
+    }
 
     res.json({ message: "Shift cancelled; related bookings cancelled", shift_id: shiftId });
   } catch (err) {
@@ -1380,6 +1421,56 @@ app.post("/api/shifts/:id/cancel", requireRole("organisation", "admin"), async (
     res.status(500).json({ error: err.message });
   } finally {
     if (conn) conn.release();
+  }
+});
+
+// =====================
+// NOTIFICATIONS
+// =====================
+
+// SSE stream — instructor connects here to receive live notifications
+app.get("/api/notifications/stream", requireAuth, (req, res) => {
+  const userId = req.session.user.id;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  // Send a heartbeat every 25s to keep the connection alive
+  const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 25000);
+
+  sseClients.set(userId, res);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    sseClients.delete(userId);
+  });
+});
+
+// Get all notifications for the logged-in user
+app.get("/api/notifications", requireAuth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT id, message, type, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
+      [req.session.user.id]
+    );
+    return res.json({ notifications: rows });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Mark all notifications as read
+app.post("/api/notifications/read-all", requireAuth, async (req, res) => {
+  try {
+    await db.query(
+      "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0",
+      [req.session.user.id]
+    );
+    return res.json({ message: "All notifications marked as read" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
