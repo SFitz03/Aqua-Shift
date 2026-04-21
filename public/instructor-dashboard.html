@@ -35,6 +35,13 @@
         <div id="statNextShift" style="font-size:1.1rem;font-weight:700;color:var(--text);">Loading…</div>
         <div id="statNextTime" class="muted" style="font-size:13px;margin-top:4px;"></div>
         <div id="statNextOrg" class="muted" style="font-size:13px;margin-top:2px;"></div>
+        <div id="statNextPostcode" class="muted" style="font-size:13px;margin-top:2px;"></div>
+        <div id="statNextMap" style="margin-top:10px;display:none;">
+          <a id="statNextDirections" href="#" target="_blank"
+            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--accent);text-decoration:none;">
+            🗺️ Get directions
+          </a>
+        </div>
       </div>
  
       <div class="card" style="grid-column:span 4;padding:18px 20px;">
@@ -155,6 +162,24 @@
           document.getElementById("statNextShift").textContent = date;
           document.getElementById("statNextTime").textContent = `${start}–${end}`;
           document.getElementById("statNextOrg").textContent = next.organisation_name || "";
+ 
+          // Map and directions if postcode available
+          const postcode = next.shift_postcode || next.organisation_postcode || "";
+          if (postcode) {
+            document.getElementById("statNextPostcode").textContent = `📍 ${postcode}`;
+            const encoded = encodeURIComponent(postcode + ", UK");
+            document.getElementById("statNextDirections").href =
+              `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+            document.getElementById("statNextDirections").textContent = `🗺️ Get directions to ${postcode}`;
+            document.getElementById("statNextMap").style.display = "block";
+          }
+ 
+          if (next.directions) {
+            const dir = document.createElement("div");
+            dir.style.cssText = "font-size:13px;color:var(--text);background:rgba(0,201,200,0.07);border:1px solid rgba(0,201,200,0.2);border-radius:8px;padding:10px 12px;margin-top:10px;";
+            dir.innerHTML = `<strong style="color:var(--accent);">🗺️ Directions</strong><br>${next.directions.replace(/</g,"&lt;").replace(/>/g,"&gt;")}`;
+            document.getElementById("statNextMap").appendChild(dir);
+          }
         } else {
           document.getElementById("statNextShift").textContent = "No upcoming shifts";
           document.getElementById("statNextShift").style.fontSize = "1rem";

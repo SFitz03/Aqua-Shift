@@ -1,167 +1,176 @@
 const msg = document.getElementById("msg");
 const openShiftsList = document.getElementById("openShiftsList");
 const myBookingsList = document.getElementById("myBookingsList");
-
+ 
 document.getElementById("logoutBtn").addEventListener("click", logout);
-document.getElementById("refreshShiftsBtn").addEventListener("click", loadOpenShifts);
-document.getElementById("refreshBookingsBtn").addEventListener("click", loadMyBookings);
-
+document.getElementById("refreshShiftsBtn").addEventListener("click", load);
+document.getElementById("refreshBookingsBtn").addEventListener("click", load);
+ 
 function show(type, text) {
   msg.className = `notice ${type || ""}`;
   msg.textContent = text;
   msg.style.display = "block";
 }
-
+ 
+function esc(str) {
+  return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+ 
 function fmtDate(d) {
-  // API returns ISO string sometimes; keep it simple
-  return String(d).slice(0, 10);
+  return new Date(d).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
 }
-
-function fmtTime(t) {
-  return String(t).slice(0, 5);
-}
-
-function shiftRow(s, appliedStatus = null) {
-  const when = `${fmtDate(s.shift_date)} ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}`;
-
-  let badge = "";
-  let btn = `<button class="btn primary" data-apply="${s.id}">Apply</button>`;
-
-  if (appliedStatus) {
-    badge = `<span class="badge">${appliedStatus}</span>`;
-    btn = `<button class="btn" disabled>Applied</button>`;
-  }
-
+ 
+function fmtTime(t) { return String(t || "").slice(0, 5); }
+function normStatus(v) { return String(v || "").toLowerCase(); }
+ 
+function shiftCard(s, booking) {
+  const status = booking ? normStatus(booking.booking_status) : null;
+ 
+  const urgentBadge = s.is_urgent
+    ? `<span style="background:var(--danger);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">URGENT</span>`
+    : "";
+ 
+  let actionHtml = `<button class="btn primary" data-apply="${s.id}">Apply</button>`;
+  if (status === "requested") actionHtml = `<span class="pill requested">Applied</span>`;
+  if (status === "accepted") actionHtml = `<span class="pill accepted">Accepted</span>`;
+  if (status === "rejected") actionHtml = `<span class="pill rejected">Rejected</span>`;
+  if (status === "cancelled") actionHtml = `<button class="btn primary" data-apply="${s.id}">Apply again</button>`;
+ 
   return `
-    <div class="item">
-      <div class="item-main">
-        <div class="item-title">#${s.id} • ${s.title} ${badge}</div>
-        <div class="item-sub muted">${when} • ${s.level_required} • £${s.pay_rate}/hr</div>
+    <div class="item" style="flex-direction:column;align-items:flex-start;gap:10px;">
+      <div style="display:flex;justify-content:space-between;width:100%;flex-wrap:wrap;gap:6px;align-items:flex-start;">
+        <div>
+          <div class="item-title" style="font-size:1rem;">${esc(s.title)}${urgentBadge}</div>
+          ${s.session_type ? `<div class="muted" style="font-size:13px;margin-top:2px;">${esc(s.session_type)}</div>` : ""}
+        </div>
+        <div>${actionHtml}</div>
       </div>
-      <div class="item-actions">${btn}</div>
+ 
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;width:100%;font-size:13px;">
+        <div class="muted">📅 ${fmtDate(s.shift_date)}</div>
+        <div class="muted">🕐 ${fmtTime(s.start_time)} – ${fmtTime(s.end_time)}</div>
+        <div class="muted">🎓 ${esc(s.level_required)}</div>
+        <div class="muted">💷 £${esc(String(s.pay_rate))}/hr${s.expenses_included ? " + expenses" : ""}</div>
+        ${s.postcode ? `<div class="muted">📍 ${esc(s.postcode)}</div>` : ""}
+        ${s.min_dbs_type ? `<div class="muted">🔒 Min DBS: ${esc(s.min_dbs_type)}</div>` : ""}
+        ${s.instructors_needed > 1 ? `<div class="muted">👥 ${s.instructors_needed} instructors needed</div>` : ""}
+      </div>
+ 
+      ${s.description ? `<div style="font-size:13px;color:var(--muted);font-style:italic;border-left:3px solid var(--border);padding-left:10px;">${esc(s.description)}</div>` : ""}
+ 
+      ${s.directions ? `<div style="font-size:13px;color:var(--text);background:rgba(0,201,200,0.07);border:1px solid rgba(0,201,200,0.2);border-radius:8px;padding:10px 12px;"><strong style="color:var(--accent);">🗺️ Directions</strong><br>${esc(s.directions)}</div>` : ""}
+ 
+      ${s.postcode ? `
+        <div style="margin-top:8px;border-radius:10px;overflow:hidden;">
+          <iframe
+            src="https://maps.google.com/maps?q=${encodeURIComponent(s.postcode + ', UK')}&output=embed&z=14"
+            width="100%" height="180" frameborder="0" style="border:0;border-radius:10px;" allowfullscreen>
+          </iframe>
+        </div>
+      ` : ""}
+ 
+ 
     </div>
   `;
 }
-
-function bookingRow(b) {
-  const when = `${fmtDate(b.shift_date)} ${fmtTime(b.start_time)}–${fmtTime(b.end_time)}`;
-  const status = b.booking_status;
-
+ 
+function bookingCard(b) {
+  const status = normStatus(b.booking_status);
   const canCancel = status === "requested";
-  const cancelBtn = canCancel
-    ? `<button class="btn danger" data-cancel-booking="${b.booking_id}">Cancel</button>`
-    : "";
-
   return `
-    <div class="item">
-      <div class="item-main">
-        <div class="item-title">Booking #${b.booking_id} • Shift #${b.shift_id} • <span class="badge">${status}</span></div>
-        <div class="item-sub muted">
-          ${b.title} • ${when} • £${b.pay_rate}/hr • ${b.organisation_name}
+    <div class="item" style="flex-direction:column;align-items:flex-start;">
+      <div style="display:flex;justify-content:space-between;width:100%;flex-wrap:wrap;gap:6px;">
+        <div>
+          <div class="item-title" style="font-size:.95rem;">${esc(b.title)}</div>
+          <div class="muted" style="font-size:13px;margin-top:3px;">
+            ${fmtDate(b.shift_date)} • ${fmtTime(b.start_time)}–${fmtTime(b.end_time)}
+          </div>
+          <div class="muted" style="font-size:13px;">${esc(b.organisation_name)} • £${b.pay_rate}/hr</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span class="pill ${status}">${status}</span>
+          ${canCancel ? `<button class="btn danger" style="font-size:12px;padding:6px 10px;" data-cancel-booking="${b.booking_id}">Cancel</button>` : ""}
         </div>
       </div>
-      <div class="item-actions">${cancelBtn}</div>
     </div>
   `;
 }
-
-async function loadMyBookings() {
-  myBookingsList.innerHTML = `<div class="muted">Loading…</div>`;
-  try {
-    const data = await api("/api/instructor/bookings", { method: "GET" });
-    const bookings = data.bookings || [];
-
-    if (!bookings.length) {
-      myBookingsList.innerHTML = `<div class="muted">No bookings yet.</div>`;
-      return bookings;
-    }
-
-    myBookingsList.innerHTML = bookings.map(bookingRow).join("");
-
-    // wire cancel buttons
-    myBookingsList.querySelectorAll("[data-cancel-booking]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-cancel-booking");
-        if (!confirm(`Cancel booking #${id}?`)) return;
-
-        try {
-          await api(`/api/bookings/${id}/cancel`, { method: "POST", body: "{}" });
-          show("ok", `Booking #${id} cancelled.`);
-          await loadMyBookings();
-          await loadOpenShifts(); // refresh applied badges
-        } catch (err) {
-          show("error", err.message);
-        }
-      });
-    });
-
-    return bookings;
-  } catch (err) {
-    myBookingsList.innerHTML = "";
-    show("error", err.message);
-    return [];
-  }
-}
-
-async function loadOpenShifts() {
-  openShiftsList.innerHTML = `<div class="muted">Loading…</div>`;
+ 
+async function load() {
   msg.style.display = "none";
-
+  openShiftsList.innerHTML = `<div class="muted">Loading…</div>`;
+  myBookingsList.innerHTML = `<div class="muted">Loading…</div>`;
+ 
   try {
-    // Load bookings first so we can show "Requested/Accepted" badges per shift
-    const bookingsData = await api("/api/instructor/bookings", { method: "GET" });
-    const bookings = bookingsData.bookings || [];
-
-    // Map shift_id -> booking_status (prefer accepted > requested > rejected/cancelled)
-    const statusPriority = { accepted: 3, requested: 2, rejected: 1, cancelled: 0 };
-    const bookingByShift = new Map();
-
+    const [shiftsData, bookingsData] = await Promise.all([
+      api("/api/shifts?status=open", { method: "GET" }),
+      api("/api/instructor/bookings", { method: "GET" }).catch(() => ({ bookings: [] }))
+    ]);
+ 
+    const shifts = shiftsData?.shifts || [];
+    const bookings = bookingsData?.bookings || [];
+ 
+    // Map bookings by shift_id
+    const bookingByShiftId = new Map();
     for (const b of bookings) {
-      const current = bookingByShift.get(b.shift_id);
-      if (!current) bookingByShift.set(b.shift_id, b.booking_status);
-      else {
-        if ((statusPriority[b.booking_status] || 0) > (statusPriority[current] || 0)) {
-          bookingByShift.set(b.shift_id, b.booking_status);
-        }
-      }
+      if (!b.shift_id) continue;
+      const existing = bookingByShiftId.get(b.shift_id);
+      const rank = { accepted: 4, requested: 3, rejected: 2, cancelled: 1 };
+      const cur = rank[normStatus(b.booking_status)] || 0;
+      const ex = existing ? (rank[normStatus(existing.booking_status)] || 0) : 0;
+      if (!existing || cur > ex) bookingByShiftId.set(b.shift_id, b);
     }
-
-    const shiftsData = await api("/api/shifts?status=open", { method: "GET" });
-    const shifts = shiftsData.shifts || [];
-
-    if (!shifts.length) {
+ 
+    // Open shifts — urgent first
+    const sorted = [...shifts].sort((a, b) => (b.is_urgent || 0) - (a.is_urgent || 0));
+    if (sorted.length === 0) {
       openShiftsList.innerHTML = `<div class="muted">No open shifts right now.</div>`;
-      return;
-    }
-
-    openShiftsList.innerHTML = shifts
-      .map((s) => shiftRow(s, bookingByShift.get(s.id) || null))
-      .join("");
-
-    // wire apply buttons
-    openShiftsList.querySelectorAll("[data-apply]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const shiftId = btn.getAttribute("data-apply");
-        if (!confirm(`Apply for shift #${shiftId}?`)) return;
-
-        try {
-          await api(`/api/shifts/${shiftId}/apply`, { method: "POST", body: "{}" });
-          show("ok", `Applied to shift #${shiftId}.`);
-          await loadMyBookings();
-          await loadOpenShifts();
-        } catch (err) {
-          show("error", err.message);
-        }
+    } else {
+      openShiftsList.innerHTML = sorted.map(s => shiftCard(s, bookingByShiftId.get(s.id))).join("");
+      openShiftsList.querySelectorAll("[data-apply]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const shiftId = btn.getAttribute("data-apply");
+          btn.disabled = true;
+          try {
+            await api(`/api/shifts/${shiftId}/apply`, { method: "POST", body: "{}" });
+            show("ok", "Applied successfully!");
+            await load();
+          } catch (err) {
+            show("error", err.message);
+            btn.disabled = false;
+          }
+        });
       });
-    });
+    }
+ 
+    // My bookings — newest first
+    if (bookings.length === 0) {
+      myBookingsList.innerHTML = `<div class="muted">No applications yet.</div>`;
+    } else {
+      const sorted = [...bookings].sort((a, b) => b.booking_id - a.booking_id);
+      myBookingsList.innerHTML = sorted.map(bookingCard).join("");
+      myBookingsList.querySelectorAll("[data-cancel-booking]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-cancel-booking");
+          if (!confirm(`Cancel this application?`)) return;
+          try {
+            await api(`/api/bookings/${id}/cancel`, { method: "POST", body: "{}" });
+            show("ok", "Application cancelled.");
+            await load();
+          } catch (err) {
+            show("error", err.message);
+          }
+        });
+      });
+    }
+ 
   } catch (err) {
-    openShiftsList.innerHTML = "";
     show("error", err.message);
+    openShiftsList.innerHTML = `<div class="muted">Failed to load.</div>`;
   }
 }
-
+ 
 (async () => {
   await guard(["instructor", "admin"]);
-  await loadMyBookings();
-  await loadOpenShifts();
+  await load();
 })();

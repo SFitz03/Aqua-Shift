@@ -17,22 +17,36 @@
         <button class="btn danger" id="logoutBtn">Logout</button>
       </div>
     </div>
-
+ 
     <h1 class="h1">Manage Shifts</h1>
     <p class="sub">Post and manage your shifts.</p>
-
+ 
     <div id="msg" class="notice" style="display:none;"></div>
-
+ 
     <div class="grid">
+ 
       <div class="card half">
         <h3>Create Shift</h3>
         <form id="shiftForm" class="form">
+ 
           <label>Title</label>
-          <input class="input" id="title" type="text" required />
-
+          <input class="input" id="title" type="text" placeholder="e.g. Cover Instructor – Level 2" required />
+ 
+          <label>Session type</label>
+          <select class="input" id="session_type" required>
+            <option value="">Select…</option>
+            <option value="Adult lessons">Adult lessons</option>
+            <option value="Children's lessons">Children's lessons</option>
+            <option value="Aqua fitness">Aqua fitness</option>
+            <option value="Lane swimming">Lane swimming</option>
+            <option value="Baby & toddler">Baby &amp; toddler</option>
+            <option value="Mixed ability">Mixed ability</option>
+            <option value="Other">Other</option>
+          </select>
+ 
           <label>Date</label>
           <input class="input" id="shift_date" type="date" required />
-
+ 
           <div class="row">
             <div style="flex:1;">
               <label>Start time</label>
@@ -43,23 +57,72 @@
               <input class="input" id="end_time" type="time" required />
             </div>
           </div>
-
+ 
           <label>Level required</label>
-          <input class="input" id="level_required" type="text" required />
-
-          <label>Pay rate (£/hr)</label>
-          <input class="input" id="pay_rate" type="number" step="0.01" min="0" required />
-
-          <div class="row" style="margin-top:14px;">
-            <button class="btn primary" type="submit">Post Shift</button>
+          <select class="input" id="level_required" required>
+            <option value="">Select…</option>
+            <option value="Level 1">Level 1</option>
+            <option value="Level 2">Level 2</option>
+            <option value="Level 3">Level 3</option>
+            <option value="Level 4">Level 4</option>
+            <option value="Any">Any level</option>
+          </select>
+ 
+          <label>Minimum DBS required</label>
+          <select class="input" id="min_dbs_type">
+            <option value="">No preference</option>
+            <option value="basic">Basic</option>
+            <option value="standard">Standard</option>
+            <option value="enhanced">Enhanced</option>
+          </select>
+ 
+          <div class="row">
+            <div style="flex:1;">
+              <label>Instructors needed</label>
+              <input class="input" id="instructors_needed" type="number" min="1" max="20" value="1" required />
+            </div>
+            <div style="flex:1;">
+              <label>Pay rate (£/hr)</label>
+              <input class="input" id="pay_rate" type="number" step="0.01" min="0" required />
+            </div>
+          </div>
+ 
+          <label>Location postcode</label>
+          <div style="display:flex;gap:8px;">
+            <input class="input" id="postcode" type="text" placeholder="e.g. BS16 1QY" style="flex:1;" />
+            <button class="btn" type="button" id="previewMapBtn">Preview map</button>
+          </div>
+          <div id="mapPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;display:none;">
+            <iframe id="mapFrame" width="100%" height="200" frameborder="0" style="border:0;border-radius:10px;" allowfullscreen></iframe>
+          </div>
+ 
+          <label>Description / notes</label>
+          <textarea class="input" id="description" rows="3" placeholder="Any specific instructions for the instructor…"></textarea>
+ 
+          <label>Direction instructions</label>
+          <textarea class="input" id="directions" rows="3" placeholder="e.g. Enter via the back gate, ask for reception. Park in bay 3."></textarea>
+ 
+          <label>Expenses included?</label>
+          <select class="input" id="expenses_included">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+ 
+          <label style="display:flex;align-items:center;gap:10px;margin-top:12px;cursor:pointer;">
+            <input type="checkbox" id="is_urgent" style="width:18px;height:18px;accent-color:var(--danger);" />
+            <span style="color:var(--danger);font-weight:700;">Mark as urgent</span>
+            <span class="muted" style="font-size:12px;">(same-day or last minute cover)</span>
+          </label>
+ 
+          <div class="row" style="margin-top:16px;">
+            <button class="btn primary" type="submit" id="submitBtn">Post Shift</button>
             <button class="btn" type="button" id="demoBtn">Prefill demo</button>
           </div>
         </form>
       </div>
-
+ 
       <div class="card half">
         <h3>My Shifts</h3>
-
         <div class="row" style="margin-bottom:10px;">
           <select class="input" id="statusFilter" style="max-width:220px;">
             <option value="">All</option>
@@ -69,12 +132,12 @@
           </select>
           <button class="btn" id="refreshBtn" type="button">Refresh</button>
         </div>
-
         <div id="shiftsList" class="list"></div>
       </div>
+ 
     </div>
   </div>
-
+ 
   <script src="/js/auth.js"></script>
   <script src="/js/orgShifts.js"></script>
 </body>
