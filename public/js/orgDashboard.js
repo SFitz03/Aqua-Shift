@@ -24,7 +24,7 @@ if (refreshBtn) refreshBtn.addEventListener("click", loadMyShifts);
 if (refreshBookingsBtn) refreshBookingsBtn.addEventListener("click", loadBookings);
 if (refreshDbsBtn) refreshDbsBtn.addEventListener("click", loadDbsCandidates);
 
-// ✅ filter listeners
+// filter listeners
 if (statusFilter) statusFilter.addEventListener("change", loadMyShifts);
 if (bookingStatusFilter) bookingStatusFilter.addEventListener("change", loadBookings);
 if (dbsFilter) dbsFilter.addEventListener("change", loadDbsCandidates);
@@ -71,7 +71,7 @@ function normStatus(v, fallback = "unknown") {
 // ---------------------
 function shiftRow(s) {
   const when = `${fmtDate(s.shift_date)} ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}`;
-  const canCancel = s.status !== "cancelled";
+  const canCancel = s.status !== "cancelled" && s.status !== "filled";
 
   return `
     <div class="item">
@@ -163,6 +163,104 @@ if (shiftForm) {
 // ---------------------
 // BOOKINGS (ORG)
 // ---------------------
+
+// Rating modal state
+let activeBookingId = null;
+let selectedRating = 0;
+
+// Inject rating modal into DOM if not already present
+(function ensureRatingModal() {
+  if (document.getElementById("ratingModal")) return;
+  const modal = document.createElement("div");
+  modal.id = "ratingModal";
+  modal.style.cssText =
+    "display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:320px;max-width:420px;width:90%;">
+      <h3 style="margin:0 0 14px;">Rate Instructor</h3>
+      <div id="ratingStarPicker" style="font-size:2rem;cursor:pointer;user-select:none;letter-spacing:4px;">
+        <span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
+      </div>
+      <div id="ratingSelectedText" style="margin:6px 0 14px;color:#666;font-size:.9rem;">Selected: —</div>
+      <textarea id="ratingCommentInput" placeholder="Feedback for the instructor (optional)…"
+        style="width:100%;min-height:70px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:.95rem;box-sizing:border-box;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end;">
+        <button class="btn" id="cancelRatingModalBtn">Cancel</button>
+        <button class="btn primary" id="submitRatingModalBtn">Submit</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const starPicker = document.getElementById("ratingStarPicker");
+  const stars = starPicker.querySelectorAll("span");
+  const selectedText = document.getElementById("ratingSelectedText");
+
+  function renderStars(value) {
+    stars.forEach((star, i) => {
+      const n = i + 1;
+      star.textContent = value >= n ? "★" : value >= n - 0.5 ? "⯨" : "☆";
+    });
+    selectedText.textContent = value ? `Selected: ${value} / 5` : "Selected: —";
+  }
+
+  stars.forEach((star, index) => {
+    star.addEventListener("mousemove", (e) => {
+      const rect = star.getBoundingClientRect();
+      const isHalf = e.clientX - rect.left < rect.width / 2;
+      renderStars(index + (isHalf ? 0.5 : 1));
+    });
+    star.addEventListener("click", (e) => {
+      const rect = star.getBoundingClientRect();
+      const isHalf = e.clientX - rect.left < rect.width / 2;
+      selectedRating = index + (isHalf ? 0.5 : 1);
+      renderStars(selectedRating);
+    });
+  });
+
+  starPicker.addEventListener("mouseleave", () => renderStars(selectedRating));
+
+  document.getElementById("cancelRatingModalBtn").addEventListener("click", closeRatingModal);
+  document.getElementById("submitRatingModalBtn").addEventListener("click", submitRating);
+})();
+
+function openRatingModal(bookingId) {
+  activeBookingId = bookingId;
+  selectedRating = 0;
+  document.getElementById("ratingCommentInput").value = "";
+  const stars = document.querySelectorAll("#ratingStarPicker span");
+  stars.forEach((s) => (s.textContent = "☆"));
+  document.getElementById("ratingSelectedText").textContent = "Selected: —";
+  const modal = document.getElementById("ratingModal");
+  modal.style.display = "flex";
+}
+
+function closeRatingModal() {
+  activeBookingId = null;
+  selectedRating = 0;
+  document.getElementById("ratingModal").style.display = "none";
+}
+
+async function submitRating() {
+  if (!activeBookingId) return;
+  if (!selectedRating) {
+    alert("Please select a star rating.");
+    return;
+  }
+  const comment = document.getElementById("ratingCommentInput").value.trim();
+  try {
+    await api(`/api/org/bookings/${activeBookingId}/rate`, {
+      method: "POST",
+      body: JSON.stringify({ rating: selectedRating, comment })
+    });
+    show("ok", `Rating submitted for booking #${activeBookingId}.`);
+    closeRatingModal();
+    await loadBookings();
+  } catch (err) {
+    show("error", err.message);
+  }
+}
+
 function bookingRow(b) {
   const when = `${fmtDate(b.shift_date)} ${fmtTime(b.start_time)}–${fmtTime(b.end_time)}`;
   const bookingStatus = normStatus(b.booking_status);
@@ -279,34 +377,9 @@ async function loadBookings() {
     });
 
     bookingsList.querySelectorAll("[data-rate]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-rate");
-
-        const rating = prompt("Enter rating from 1 to 5:");
-        if (!rating) return;
-
-        const numeric = Number(rating);
-        if (!Number.isInteger(numeric) || numeric < 1 || numeric > 5) {
-          alert("Rating must be a whole number from 1 to 5.");
-          return;
-        }
-
-        const comment = prompt("Feedback for the instructor:") || "";
-
-        try {
-          await api(`/api/org/bookings/${id}/rate`, {
-            method: "POST",
-            body: JSON.stringify({
-              rating: numeric,
-              comment
-            })
-          });
-
-          show("ok", `Rating submitted for booking #${id}.`);
-          await loadBookings();
-        } catch (err) {
-          show("error", err.message);
-        }
+        openRatingModal(id);
       });
     });
   } catch (err) {
