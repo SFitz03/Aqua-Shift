@@ -21,92 +21,132 @@
         <button class="btn danger" id="logoutBtn">Logout</button>
       </div>
     </div>
-
+ 
     <h1 class="h1">Instructor Dashboard</h1>
     <p class="sub">Manage your profile, view shifts, track bookings, and check your DBS and ratings.</p>
-
+ 
     <div id="msg" class="notice" style="display:none;"></div>
-
+ 
     <!-- Summary stat cards -->
     <div class="grid" style="margin-bottom:14px;">
-
+ 
       <div class="card" style="grid-column:span 4;padding:18px 20px;">
         <div class="muted" style="font-size:12px;margin-bottom:8px;">Next upcoming shift</div>
         <div id="statNextShift" style="font-size:1.1rem;font-weight:700;color:var(--text);">Loading…</div>
         <div id="statNextTime" class="muted" style="font-size:13px;margin-top:4px;"></div>
         <div id="statNextOrg" class="muted" style="font-size:13px;margin-top:2px;"></div>
       </div>
-
+ 
       <div class="card" style="grid-column:span 4;padding:18px 20px;">
         <div class="muted" style="font-size:12px;margin-bottom:8px;">Total shifts booked</div>
         <div id="statTotalShifts" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
         <div class="muted" style="font-size:13px;margin-top:4px;">accepted bookings</div>
       </div>
-
+ 
       <div class="card" style="grid-column:span 4;padding:18px 20px;">
         <div class="muted" style="font-size:12px;margin-bottom:8px;">My rating</div>
         <div id="statRating" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
         <div id="statStars" class="muted" style="font-size:14px;margin-top:4px;letter-spacing:2px;"></div>
       </div>
-
+ 
     </div>
-
+ 
     <!-- Navigation cards -->
     <div class="grid">
-      <a href="/shifts.html" class="card half" style="text-decoration:none; color:inherit;">
+      <a href="/shifts.html" class="card half" id="cardShifts" style="text-decoration:none; color:inherit; position:relative;">
         <h3>Find Shifts</h3>
         <p class="muted">Browse available shifts and apply for work.</p>
       </a>
-
-      <a href="/my-bookings.html" class="card half" style="text-decoration:none; color:inherit;">
+ 
+      <a href="/my-bookings.html" class="card half" id="cardBookings" style="text-decoration:none; color:inherit; position:relative;">
         <h3>My Bookings</h3>
         <p class="muted">See requested, accepted, rejected, and cancelled bookings.</p>
       </a>
-
-      <a href="/instructor-profile.html" class="card half" style="text-decoration:none; color:inherit;">
+ 
+      <a href="/instructor-profile.html" class="card half" id="cardProfile" style="text-decoration:none; color:inherit; position:relative;">
         <h3>My Profile</h3>
         <p class="muted">Update qualifications, availability, bio, DBS status, and ratings.</p>
       </a>
-
-      <a href="/dbs-submit.html" class="card half" style="text-decoration:none; color:inherit;">
+ 
+      <a href="/dbs-submit.html" class="card half" id="cardDbs" style="text-decoration:none; color:inherit; position:relative;">
         <h3>Submit DBS</h3>
         <p class="muted">Submit or review your DBS verification details.</p>
       </a>
     </div>
   </div>
-
+ 
   <script src="/js/auth.js"></script>
   <script src="/js/notifications.js"></script>
   <script>
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
-
+ 
+    function addBadge(cardId, count, colour) {
+      if (!count) return;
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      const dot = document.createElement("span");
+      dot.textContent = count > 9 ? "9+" : count;
+      dot.style.cssText = `
+        position:absolute;top:12px;right:12px;
+        background:${colour || "var(--danger)"};color:#fff;
+        border-radius:999px;font-size:.7rem;font-weight:700;
+        min-width:20px;height:20px;line-height:20px;
+        text-align:center;padding:0 5px;
+      `;
+      card.appendChild(dot);
+    }
+ 
     function starDisplay(value) {
       const full = Math.floor(value);
       const half = value % 1 >= 0.5 ? 1 : 0;
       const empty = 5 - full - half;
       return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
     }
-
+ 
     async function loadStats() {
       try {
         const [bookingsData, ratingsData] = await Promise.all([
           api("/api/instructor/bookings", { method: "GET" }).catch(() => ({ bookings: [] })),
           api("/api/instructor/ratings/summary", { method: "GET" }).catch(() => ({ summary: null }))
         ]);
-
+ 
         const bookings = bookingsData.bookings || [];
         const accepted = bookings.filter(b => String(b.booking_status).toLowerCase() === "accepted");
-
+ 
+        // Card badges
+        const openShiftsCount = await api("/api/shifts?status=open", { method: "GET" })
+          .then(d => (d.shifts || []).length).catch(() => 0);
+        const changedBookings = bookings.filter(b => {
+          const s = String(b.booking_status).toLowerCase();
+          return s === "accepted" || s === "rejected";
+        }).length;
+        const dbsData = await api("/api/instructor/dbs/me", { method: "GET" }).catch(() => null);
+        const dbsStatus = dbsData?.dbs?.dbs_status || "";
+        const dbsNeedsAttention = dbsStatus === "rejected" || dbsStatus === "" || dbsStatus === null;
+ 
+        // Card badges — coloured if needs attention, green tick if all clear
+        if (openShiftsCount > 0) addBadge("cardShifts", openShiftsCount, "var(--accent)");
+        else addBadge("cardShifts", "✓", "var(--ok)");
+ 
+        if (changedBookings > 0) addBadge("cardBookings", changedBookings, "var(--ok)");
+        else addBadge("cardBookings", "✓", "var(--ok)");
+ 
+        if (dbsNeedsAttention) addBadge("cardDbs", "!", "var(--danger)");
+        else addBadge("cardDbs", "✓", "var(--ok)");
+ 
+        if (dbsStatus === "rejected") addBadge("cardProfile", "!", "var(--danger)");
+        else addBadge("cardProfile", "✓", "var(--ok)");
+ 
         // Total shifts
         document.getElementById("statTotalShifts").textContent = accepted.length;
-
+ 
         // Next upcoming shift
         const today = new Date().toISOString().slice(0, 10);
         const upcoming = accepted
           .filter(b => b.shift_date && String(b.shift_date).slice(0, 10) >= today)
           .sort((a, b) => a.shift_date > b.shift_date ? 1 : -1);
-
+ 
         if (upcoming.length) {
           const next = upcoming[0];
           const date = new Date(next.shift_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
@@ -119,7 +159,7 @@
           document.getElementById("statNextShift").textContent = "No upcoming shifts";
           document.getElementById("statNextShift").style.fontSize = "1rem";
         }
-
+ 
         // Rating
         const summary = ratingsData.summary || {};
         if (summary && summary.total_ratings > 0) {
@@ -130,7 +170,7 @@
           document.getElementById("statRating").textContent = "No ratings yet";
           document.getElementById("statRating").style.fontSize = "1rem";
         }
-
+ 
       } catch (err) {
         console.error("Stats load error:", err);
         document.getElementById("statNextShift").textContent = "—";
@@ -138,7 +178,7 @@
         document.getElementById("statRating").textContent = "—";
       }
     }
-
+ 
     (async () => {
       await guard(["instructor", "admin"]);
       await loadStats();
