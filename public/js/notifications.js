@@ -1,6 +1,4 @@
-
 (function () {
-  // ── Inject bell UI into nav ──────────────────────────────────────────────
   const navActions = document.querySelector(".nav-actions");
   if (!navActions) return;
  
@@ -19,10 +17,10 @@
     <div id="notifPanel" style="
       display:none;position:absolute;right:0;top:calc(100% + 6px);
       width:340px;max-height:420px;overflow-y:auto;
-      background:#121b2e;border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+      background:#121b2e;border:1px solid rgba(0,201,200,0.12);border-radius:12px;
       box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;
     ">
-      <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <div style="padding:10px 14px;border-bottom:1px solid rgba(0,201,200,0.12);display:flex;justify-content:space-between;align-items:center;">
         <strong style="font-size:.95rem;color:#e8eefc;">Notifications</strong>
         <button id="notifMarkRead" style="background:none;border:none;cursor:pointer;color:#00c9c8;font-size:.82rem;">Mark all read</button>
       </div>
@@ -30,7 +28,6 @@
     </div>
   `;
  
-  // Insert bell before the first button/link in nav-actions
   navActions.insertBefore(wrapper, navActions.firstChild);
  
   const bell = document.getElementById("notifBell");
@@ -39,11 +36,10 @@
   const list = document.getElementById("notifList");
   const markReadBtn = document.getElementById("notifMarkRead");
  
-  // ── State ────────────────────────────────────────────────────────────────
   let notifications = [];
   let panelOpen = false;
+  let lastCount = 0;
  
-  // ── Render ───────────────────────────────────────────────────────────────
   function updateBadge() {
     const unread = notifications.filter((n) => !n.is_read).length;
     if (unread > 0) {
@@ -55,39 +51,11 @@
   }
  
   function typeColour(type) {
-    return { warning: "#ff5a6a", info: "#4aa3ff", success: "#35d07f" }[type] || "#a7b3d3";
+    return { warning: "#ff5a6a", info: "#00c9c8", success: "#35d07f" }[type] || "#a7b3d3";
   }
  
-  function renderList() {
-    if (notifications.length === 0) {
-      list.innerHTML = `<div style="padding:14px;color:#a7b3d3;text-align:center;font-size:.9rem;">No notifications yet</div>`;
-      return;
-    }
-    list.innerHTML = notifications
-      .map(
-        (n) => `
-        <div style="
-          padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);
-          background:${n.is_read ? "transparent" : "rgba(0,201,200,0.06)"};
-        ">
-          <div style="display:flex;align-items:flex-start;gap:8px;">
-            <span style="color:${typeColour(n.type)};font-size:1rem;margin-top:2px;">●</span>
-            <div style="flex:1;">
-              <div style="font-size:.88rem;line-height:1.4;color:#e8eefc;">${escapeHtml(n.message)}</div>
-              <div style="font-size:.75rem;color:#a7b3d3;margin-top:3px;">${timeAgo(n.created_at)}</div>
-            </div>
-          </div>
-        </div>`
-      )
-      .join("");
-  }
- 
-  // ── Helpers ──────────────────────────────────────────────────────────────
   function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
  
   function timeAgo(dateStr) {
@@ -100,33 +68,61 @@
     return `${Math.floor(h / 24)}d ago`;
   }
  
-  // ── Load existing notifications ──────────────────────────────────────────
-  async function loadNotifications() {
+  function renderList() {
+    if (notifications.length === 0) {
+      list.innerHTML = `<div style="padding:14px;color:#a7b3d3;text-align:center;font-size:.9rem;">No notifications yet</div>`;
+      return;
+    }
+    list.innerHTML = notifications.map((n) => `
+      <div style="
+        padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);
+        background:${n.is_read ? "transparent" : "rgba(0,201,200,0.06)"};
+      ">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:${typeColour(n.type)};font-size:1rem;margin-top:2px;">●</span>
+          <div style="flex:1;">
+            <div style="font-size:.88rem;line-height:1.4;color:#e8eefc;">${escapeHtml(n.message)}</div>
+            <div style="font-size:.75rem;color:#a7b3d3;margin-top:3px;">${timeAgo(n.created_at)}</div>
+          </div>
+        </div>
+      </div>`
+    ).join("");
+  }
+ 
+  function flashBell() {
+    bell.style.transform = "scale(1.3)";
+    setTimeout(() => (bell.style.transform = "scale(1)"), 300);
+  }
+ 
+  async function fetchNotifications() {
     try {
       const res = await fetch("/api/notifications", { credentials: "include" });
+      if (!res.ok) return;
       const data = await res.json();
-      notifications = data.notifications || [];
+      const fresh = data.notifications || [];
+ 
+      const newUnread = fresh.filter((n) => !n.is_read).length;
+      if (newUnread > lastCount) flashBell();
+      lastCount = newUnread;
+ 
+      notifications = fresh;
       updateBadge();
-      renderList();
+      if (panelOpen) renderList();
     } catch {
       // silently fail — not critical
     }
   }
  
-  // ── Mark all read ────────────────────────────────────────────────────────
   markReadBtn.addEventListener("click", async () => {
     try {
-      await fetch("/api/notifications/read-all", {
-        method: "POST",
-        credentials: "include"
-      });
+      await fetch("/api/notifications/read-all", { method: "POST", credentials: "include" });
       notifications = notifications.map((n) => ({ ...n, is_read: true }));
+      lastCount = 0;
       updateBadge();
       renderList();
     } catch {}
   });
  
-  // ── Toggle panel ─────────────────────────────────────────────────────────
   bell.addEventListener("click", (e) => {
     e.stopPropagation();
     panelOpen = !panelOpen;
@@ -141,31 +137,9 @@
  
   panel.addEventListener("click", (e) => e.stopPropagation());
  
-  // ── SSE stream ───────────────────────────────────────────────────────────
-  function connectSSE() {
-    const es = new EventSource("/api/notifications/stream");
+  // Initial load then poll every 15 seconds
+  fetchNotifications();
+  setInterval(fetchNotifications, 15000);
  
-    es.onmessage = (event) => {
-      try {
-        const notif = JSON.parse(event.data);
-        notifications.unshift({ ...notif, is_read: false, created_at: notif.created_at || new Date() });
-        updateBadge();
-        if (panelOpen) renderList();
- 
-        // Flash the bell
-        bell.style.transform = "scale(1.3)";
-        setTimeout(() => (bell.style.transform = "scale(1)"), 300);
-      } catch {}
-    };
- 
-    es.onerror = () => {
-      es.close();
-      // Reconnect after 5s if the connection drops
-      setTimeout(connectSSE, 5000);
-    };
-  }
- 
-  // ── Init ─────────────────────────────────────────────────────────────────
-  loadNotifications();
-  connectSSE();
 })();
+ 

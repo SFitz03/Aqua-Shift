@@ -91,8 +91,8 @@
     async function loadStats() {
       try {
         const [bookingsData, ratingsData] = await Promise.all([
-          api("/api/instructor/bookings", { method: "GET" }),
-          api("/api/instructor/ratings/summary", { method: "GET" })
+          api("/api/instructor/bookings", { method: "GET" }).catch(() => ({ bookings: [] })),
+          api("/api/instructor/ratings/summary", { method: "GET" }).catch(() => ({ summary: null }))
         ]);
 
         const bookings = bookingsData.bookings || [];
@@ -101,7 +101,7 @@
         // Total shifts
         document.getElementById("statTotalShifts").textContent = accepted.length;
 
-        // Next upcoming shift — find accepted bookings with future shift dates
+        // Next upcoming shift
         const today = new Date().toISOString().slice(0, 10);
         const upcoming = accepted
           .filter(b => b.shift_date && String(b.shift_date).slice(0, 10) >= today)
@@ -122,7 +122,7 @@
 
         // Rating
         const summary = ratingsData.summary || {};
-        if (summary.total_ratings > 0) {
+        if (summary && summary.total_ratings > 0) {
           const avg = parseFloat(summary.average_rating);
           document.getElementById("statRating").textContent = `${avg.toFixed(1)} / 5`;
           document.getElementById("statStars").textContent = starDisplay(avg);
@@ -132,8 +132,10 @@
         }
 
       } catch (err) {
-        // Stats failing shouldn't break the whole page
         console.error("Stats load error:", err);
+        document.getElementById("statNextShift").textContent = "—";
+        document.getElementById("statTotalShifts").textContent = "—";
+        document.getElementById("statRating").textContent = "—";
       }
     }
 
