@@ -27,6 +27,31 @@
 
     <div id="msg" class="notice" style="display:none;"></div>
 
+    <!-- Summary stat cards -->
+    <div class="grid" style="margin-bottom:14px;">
+
+      <div class="card" style="grid-column:span 4;padding:18px 20px;">
+        <div class="muted" style="font-size:12px;margin-bottom:8px;">Next upcoming shift</div>
+        <div id="statNextShift" style="font-size:1.1rem;font-weight:700;color:var(--text);">Loading…</div>
+        <div id="statNextTime" class="muted" style="font-size:13px;margin-top:4px;"></div>
+        <div id="statNextOrg" class="muted" style="font-size:13px;margin-top:2px;"></div>
+      </div>
+
+      <div class="card" style="grid-column:span 4;padding:18px 20px;">
+        <div class="muted" style="font-size:12px;margin-bottom:8px;">Total shifts booked</div>
+        <div id="statTotalShifts" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
+        <div class="muted" style="font-size:13px;margin-top:4px;">accepted bookings</div>
+      </div>
+
+      <div class="card" style="grid-column:span 4;padding:18px 20px;">
+        <div class="muted" style="font-size:12px;margin-bottom:8px;">My rating</div>
+        <div id="statRating" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
+        <div id="statStars" class="muted" style="font-size:14px;margin-top:4px;letter-spacing:2px;"></div>
+      </div>
+
+    </div>
+
+    <!-- Navigation cards -->
     <div class="grid">
       <a href="/shifts.html" class="card half" style="text-decoration:none; color:inherit;">
         <h3>Find Shifts</h3>
@@ -56,8 +81,65 @@
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
+    function starDisplay(value) {
+      const full = Math.floor(value);
+      const half = value % 1 >= 0.5 ? 1 : 0;
+      const empty = 5 - full - half;
+      return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
+    }
+
+    async function loadStats() {
+      try {
+        const [bookingsData, ratingsData] = await Promise.all([
+          api("/api/instructor/bookings", { method: "GET" }),
+          api("/api/instructor/ratings/summary", { method: "GET" })
+        ]);
+
+        const bookings = bookingsData.bookings || [];
+        const accepted = bookings.filter(b => String(b.booking_status).toLowerCase() === "accepted");
+
+        // Total shifts
+        document.getElementById("statTotalShifts").textContent = accepted.length;
+
+        // Next upcoming shift — find accepted bookings with future shift dates
+        const today = new Date().toISOString().slice(0, 10);
+        const upcoming = accepted
+          .filter(b => b.shift_date && String(b.shift_date).slice(0, 10) >= today)
+          .sort((a, b) => a.shift_date > b.shift_date ? 1 : -1);
+
+        if (upcoming.length) {
+          const next = upcoming[0];
+          const date = new Date(next.shift_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+          const start = String(next.start_time).slice(0, 5);
+          const end = String(next.end_time).slice(0, 5);
+          document.getElementById("statNextShift").textContent = date;
+          document.getElementById("statNextTime").textContent = `${start}–${end}`;
+          document.getElementById("statNextOrg").textContent = next.organisation_name || "";
+        } else {
+          document.getElementById("statNextShift").textContent = "No upcoming shifts";
+          document.getElementById("statNextShift").style.fontSize = "1rem";
+        }
+
+        // Rating
+        const summary = ratingsData.summary || {};
+        if (summary.total_ratings > 0) {
+          const avg = parseFloat(summary.average_rating);
+          document.getElementById("statRating").textContent = `${avg.toFixed(1)} / 5`;
+          document.getElementById("statStars").textContent = starDisplay(avg);
+        } else {
+          document.getElementById("statRating").textContent = "No ratings yet";
+          document.getElementById("statRating").style.fontSize = "1rem";
+        }
+
+      } catch (err) {
+        // Stats failing shouldn't break the whole page
+        console.error("Stats load error:", err);
+      }
+    }
+
     (async () => {
       await guard(["instructor", "admin"]);
+      await loadStats();
     })();
   </script>
 </body>

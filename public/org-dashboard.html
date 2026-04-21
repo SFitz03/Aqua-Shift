@@ -31,6 +31,30 @@
 <h1 class="h1">Organisation Dashboard</h1>
 <p class="sub">Manage your shifts, instructors and bookings.</p>
 
+<!-- Summary stat cards -->
+<div class="grid" style="margin-bottom:14px;">
+
+  <div class="card" style="grid-column:span 4;padding:18px 20px;">
+    <div class="muted" style="font-size:12px;margin-bottom:8px;">Open shifts</div>
+    <div id="statOpenShifts" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
+    <div class="muted" style="font-size:13px;margin-top:4px;">currently available</div>
+  </div>
+
+  <div class="card" style="grid-column:span 4;padding:18px 20px;">
+    <div class="muted" style="font-size:12px;margin-bottom:8px;">Pending applications</div>
+    <div id="statPending" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
+    <div class="muted" style="font-size:13px;margin-top:4px;">awaiting your decision</div>
+  </div>
+
+  <div class="card" style="grid-column:span 4;padding:18px 20px;">
+    <div class="muted" style="font-size:12px;margin-bottom:8px;">Upcoming filled shifts</div>
+    <div id="statFilled" style="font-size:2.2rem;font-weight:700;color:var(--accent);">—</div>
+    <div class="muted" style="font-size:13px;margin-top:4px;">confirmed & upcoming</div>
+  </div>
+
+</div>
+
+<!-- Navigation cards -->
 <div class="grid">
 
 <a href="/org-shifts.html" class="card half" style="text-decoration:none;color:inherit;">
@@ -67,8 +91,41 @@
 <script>
 document.getElementById("logoutBtn").addEventListener("click", logout);
 
+async function loadStats() {
+  try {
+    const [shiftsData, bookingsData] = await Promise.all([
+      api("/api/org/shifts", { method: "GET" }),
+      api("/api/org/bookings", { method: "GET" })
+    ]);
+
+    const shifts = shiftsData.shifts || [];
+    const bookings = bookingsData.bookings || [];
+
+    const today = new Date().toISOString().slice(0, 10);
+    const openShifts = shifts.filter(s => String(s.status).toLowerCase() === "open").length;
+    const filledShifts = shifts.filter(s =>
+      String(s.status).toLowerCase() === "filled" &&
+      String(s.shift_date).slice(0, 10) >= today
+    ).length;
+    const pendingBookings = bookings.filter(b => String(b.booking_status).toLowerCase() === "requested").length;
+
+    document.getElementById("statOpenShifts").textContent = openShifts;
+    document.getElementById("statPending").textContent = pendingBookings;
+    document.getElementById("statFilled").textContent = filledShifts;
+
+    // Highlight pending in warning colour if there are any waiting
+    if (pendingBookings > 0) {
+      document.getElementById("statPending").style.color = "var(--danger)";
+    }
+
+  } catch (err) {
+    console.error("Stats load error:", err);
+  }
+}
+
 (async () => {
   await guard(["organisation","admin"]);
+  await loadStats();
 })();
 </script>
 
