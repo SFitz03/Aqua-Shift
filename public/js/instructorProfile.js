@@ -19,7 +19,7 @@ document.getElementById("demoDbsBtn").addEventListener("click", () => {
   document.getElementById("dbs_check_type").value = "enhanced";
   document.getElementById("dbs_issued_date").value = "2025-11-01";
 
-  // ✅ FIX: if update_service_member is a checkbox, tick it properly
+  // FIX: if update_service_member is a checkbox, tick it properly
   const us = document.getElementById("update_service_member");
   if (us) {
     if (us.type === "checkbox") us.checked = true;
@@ -97,7 +97,7 @@ function renderRatingsList(ratings) {
   `).join("");
 }
 
-// ✅ NEW: UI rules based on dbs_status
+// added a new UI rules based on dbs_status
 function applyDbsUiRules(dbs) {
   const status = (dbs?.dbs_status || "not_submitted").toLowerCase();
 
@@ -211,7 +211,7 @@ document.getElementById("dbsForm").addEventListener("submit", async (e) => {
   const dbs_check_type = document.getElementById("dbs_check_type").value;
   const dbs_issued_date = document.getElementById("dbs_issued_date").value;
 
-  // ✅ FIX: checkbox-friendly
+  //  FIX: checkbox-friendly
   const us = document.getElementById("update_service_member");
   const update_service_member =
     us && us.type === "checkbox" ? us.checked : us?.value === "1";
@@ -246,8 +246,30 @@ document.getElementById("dbsForm").addEventListener("submit", async (e) => {
   }
 });
 
+async function loadProfile() {
+  try {
+    const data = await api("/api/instructor/profile", { method: "GET" });
+    if (data.profile) {
+      const p = data.profile;
+      document.getElementById("qualification_level").value = p.qualification_level || "";
+      document.getElementById("postcode").value = p.postcode || "";
+      document.getElementById("bio").value = p.bio || "";
+      document.getElementById("availability_days").value = p.availability_days || "";
+      document.getElementById("availability_start").value = p.availability_start
+        ? String(p.availability_start).slice(0, 5)
+        : "";
+      document.getElementById("availability_end").value = p.availability_end
+        ? String(p.availability_end).slice(0, 5)
+        : "";
+    }
+  } catch (err) {
+    // No profile yet will stay blank 
+  }
+}
+
 (async () => {
   await guard(["instructor", "admin"]);
+  await loadProfile();
   await loadDbs();
   await loadRatings();
 })();
