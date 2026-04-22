@@ -1128,10 +1128,16 @@ app.get("/api/org/bookings", requireRole("organisation", "admin"), async (req, r
  
         ip.postcode AS instructor_postcode,
         ip.bio,
+        ip.availability_days,
+        ip.availability_start,
+        ip.availability_end,
  
         r.id AS rating_id,
         r.rating,
-        r.comment
+        r.comment,
+ 
+        (SELECT ROUND(AVG(ir.rating),1) FROM instructor_ratings ir WHERE ir.instructor_id = ip.id) AS avg_rating,
+        (SELECT COUNT(*) FROM instructor_ratings ir WHERE ir.instructor_id = ip.id) AS total_ratings
  
       FROM bookings b
       JOIN shifts s ON s.id = b.shift_id
