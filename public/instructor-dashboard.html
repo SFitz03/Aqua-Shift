@@ -119,7 +119,7 @@
         ]);
  
         const bookings = bookingsData.bookings || [];
-        const accepted = bookings.filter(b => String(b.booking_status).toLowerCase() === "accepted");
+        const accepted = bookings.filter(b => ["accepted", "requested"].includes(String(b.booking_status).toLowerCase()));
  
         // Card badges
         const openShiftsCount = await api("/api/shifts?status=open", { method: "GET" })
